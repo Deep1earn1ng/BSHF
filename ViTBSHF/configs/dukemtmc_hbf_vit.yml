@@ -1,0 +1,67 @@
+# configs/dukemtmc_hbf_vit.yml
+MODEL:
+  PRETRAIN_CHOICE: 'imagenet'
+
+  PRETRAIN_PATH: '/public/home/deepwrh/ViTBSHF/data/vit_base_ics_cfs_lup.pth'
+  METRIC_LOSS_TYPE: 'triplet'
+  IF_LABELSMOOTH: 'on'
+  IF_WITH_CIRCLE: 'yes'
+  NAME: 'vit_msmt_ics'
+  DEVICE: 'cuda'
+  STRIDE_SIZE: [16, 16]
+  SIE_CAMERA: True
+  SIE_VIEW: False
+  
+  # HBF 创新架构配置
+  IF_WITH_HBF: 'yes'
+  KEEP_RATIO: 1.0                # 依靠 Trainer 进行动态衰减调度
+  TRIPLET_MARGIN: 0.3
+  # Duke 数据集相对干净，使用 0.005 建立强中心约束
+  CIRCLE_WEIGHT: 0.005           
+
+INPUT:
+  # 保持 384x128 高分辨率重建细粒度特征
+  SIZE_TRAIN: [384, 128]
+  SIZE_TEST: [384, 128]
+  PROB: 0.5
+  RE_PROB: 0.5
+  PADDING: 10
+  PIXEL_MEAN: [0.485, 0.456, 0.406]
+  PIXEL_STD: [0.229, 0.224, 0.225]
+
+DATASETS:
+  NAMES: 'dukemtmc'
+  # 建议将 Duke 数据集解压并拷贝至服务器内存盘，以防 I/O 阻塞 15 核 CPU
+  ROOT_DIR: '/dev/shm/deepwrh_duke/'   
+
+DATALOADER:
+  SAMPLER: 'softmax_triplet'
+  NUM_INSTANCE: 8               
+  NUM_WORKERS: 8                
+
+SOLVER:
+  OPTIMIZER_NAME: 'SGD'         
+  MOMENTUM: 0.9                 
+  BASE_LR: 0.008                
+  WARMUP_EPOCHS: 10             
+  MAX_EPOCHS: 200               
+  SCHEDULER_NAME: 'cosine'      
+  WEIGHT_DECAY: 0.0001          
+  
+  # 64G 显存环境：64 是多尺度特征拼接后矩阵运算的甜点值
+  IMS_PER_BATCH: 64          
+  LOG_PERIOD: 50
+  EVAL_PERIOD: 10
+
+TEST:
+  EVAL: True                    
+  IMS_PER_BATCH: 256            
+  RE_RANKING: True              
+  RE_RANKING_K1: 20             
+  RE_RANKING_K2: 6              
+  FEAT_NORM: 'yes'              
+  WEIGHT: ''                    
+  NECK_FEAT: 'before'           
+  AQE: []                       
+
+OUTPUT_DIR: '/public/home/deepwrh/logs/duke'

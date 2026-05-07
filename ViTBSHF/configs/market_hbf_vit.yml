@@ -1,0 +1,66 @@
+# configs/market_hbf_vit.yml
+MODEL:
+  PRETRAIN_CHOICE: 'imagenet'
+  PRETRAIN_PATH: '/public/home/deepwrh/ViTBSHF/data/vit_base_ics_cfs_lup.pth'
+  METRIC_LOSS_TYPE: 'triplet'
+  IF_LABELSMOOTH: 'on'
+  IF_WITH_CIRCLE: 'yes'
+  CIRCLE_WEIGHT: 0.005
+  NAME: 'vit_msmt_ics'
+  DEVICE: 'cuda'
+  STRIDE_SIZE: [16, 16]
+  SIE_CAMERA: True
+  SIE_VIEW: False
+  IF_WITH_HBF: 'yes'
+  KEEP_RATIO: 1.0
+  TRIPLET_MARGIN: 0.35
+
+INPUT:
+  SIZE_TRAIN: [384, 128]
+  SIZE_TEST: [384, 128]
+  PROB: 0.5
+  RE_PROB: 0.5
+  PADDING: 10
+  PIXEL_MEAN: [0.5, 0.5, 0.5]
+  PIXEL_STD: [0.5, 0.5, 0.5]
+
+DATASETS:
+  NAMES: 'market'
+  ROOT_DIR: '/dev/shm/deeplzy_market'   
+
+DATALOADER:
+  SAMPLER: 'softmax_triplet'
+  NUM_INSTANCE: 8               
+  NUM_WORKERS: 8                
+
+SOLVER:
+  OPTIMIZER_NAME: 'AdamW'         
+  BASE_LR: 0.00035                
+  WEIGHT_DECAY: 0.01              # 针对 AdamW 的标准权重衰减，有效防止 ViT 过拟合
+  WEIGHT_DECAY_BIAS: 0.0001
+  
+  # --- Warmup 热身策略 (保护预训练权重的核心) ---
+  WARMUP_FACTOR: 0.01             # 初始学习率 = 0.00035 * 0.01 = 3.5e-6
+  WARMUP_ITERS: 10                # 线性热身 10 个 Epoch
+  WARMUP_METHOD: 'linear'         
+  
+  # --- 训练周期与退火 ---
+  MAX_EPOCHS: 120                 # ViT + Cosine 建议 120 轮收敛
+  SCHEDULER_NAME: 'cosine'        # 余弦退火学习率
+  
+  IMS_PER_BATCH: 64          
+  LOG_PERIOD: 20
+  EVAL_PERIOD: 10
+
+TEST:
+  EVAL: True                    
+  IMS_PER_BATCH: 256            
+  RE_RANKING: True              
+  RE_RANKING_K1: 20             
+  RE_RANKING_K2: 6              
+  FEAT_NORM: 'yes'              
+  WEIGHT: ''                    
+  NECK_FEAT: 'before'           
+  AQE: []                       
+
+OUTPUT_DIR: '/public/home/deepwrh/logs/market'
